@@ -1,0 +1,7 @@
+Problem 5 was written in C++. I used Windows command prompt with Cygwin. It can be compiled in Linux with slight modifications to this method. To compile the source for problem 5:
+1. Copy files files to test with, into the same folder (Problem-5).
+2. Through command prompt, cd to the folder containing problem 5.
+3. Run 'g++ Problem-5.cpp -o prob5' to compile.
+4. Run 'prob5.exe option key_file ciphertext_file plaintext_file' where option is to be replaced by encrypt/decrypt, key_file by the key file name, cyphertext_file by the cyphertext file name, and plaintext_file by the plaintext file name.
+
+My intention was to use the OpenSSL library to generate a random IV, but I couldn't do that due to my lack of experience with the library. As a consequence, rand() and srand() functions were used to generate the 32 byte random IV.
