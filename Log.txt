@@ -1,0 +1,14 @@
+4/12 Wednesday Afternoon - Clarified the following from Omar:
+- This password manager only stores 1 username per domain name. Thus, we shouldn't have an ambiguity while getting the password from the manager.
+- We need to check integrity twice - once implicitly after logging the user in to the manager, and explicitly whenever the user chooses the option 'check_integrity' from the manager menu.
+- We might want to index the username-password-domainname values while adding them to passwd_file. This would make it easier while getting a password.
+- We need to make certain design decesions - how do we want to store username-password-domain values in passwd_file. We mighht want to pad these values - and as suggested by Omar, use the \0 (null) character for padding and not spaces.
+- All the cryptographic and authenticative mechanisms are provided by OpenSSL. The sooner we figure that out, the better.
+--Arjun
+
+4/12 Wednesday 11:39 PM - Committed pp1.cpp which will be our version 1 for programming project 1.
+--Arjun
+
+4/12 Wednesday 11:45 PM - Additional questions:
+- If the program cannot find both passwd_file and master_passwd, it asks the user to register with a new master password. What if one of the two files are found? What if both files exist, but the master_passwd is empty? Empty password?
+--Arjun
