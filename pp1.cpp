@@ -4,8 +4,11 @@
 #include<stdlib.h>
 #include<math.h>
 #include <sstream>
+#include<vector>
 
 using namespace std;
+
+vector<string> domains; //Vector of strings that will store an indexed list of all domains that the user has passwords with.
 
 void check_integrity()
 {
@@ -14,7 +17,100 @@ void check_integrity()
 
 void register_account()
 {
-	cout<<"Account has been registered. (I wish it was this simple.)\n\n";
+	//Strings that will store the details of the accunt.
+	string domain_name;
+	string user_name;
+	string password;
+	
+	//Flag checking variables.
+	int strlength = 81;
+	bool domain_exists_flag = false;
+	
+	//Loop to check that the domain name entered is <= 80 characters. Loops until this is the case.
+	while(strlength > 80)
+	{
+	cout<<"Enter the domain name of the account you want to register: ";
+	cin >> domain_name;
+	strlength = domain_name.length();
+	}
+	
+	//Check that the input domain doesn't already exist
+	for(int i = 0; i < domains.size(); i++)
+	{
+		if(domain_name == domains[i])
+		{
+			cout<<"This domain already exists!\n"; //Go back to menu
+			domain_exists_flag = true;
+		}
+	}
+		
+	if(domain_exists_flag == false)
+	{
+		domains.push_back(domain_name); //Add domain to global list of domains.
+		
+		int unlength, pwlength, dnlength; //Variables to store lengths of username, password, and domainname.
+		
+		
+		strlength = 81; //Reset this since it has been changed
+		//Input username for the domain
+		while(strlength > 80)
+		{
+			cout<<"Enter username for "<<domain_name<<" : ";
+			cin >> user_name;
+			strlength = user_name.length();
+		}
+		unlength = user_name.length();
+				
+		strlength = 81; //Reset this since it has been changed
+		//Input password for the domain
+		while(strlength > 80)
+		{
+			cout<<"Enter password for "<<domain_name<<" : ";
+			cin >> password;
+			strlength = password.length();
+		}
+		pwlength = password.length();
+		
+		//Pad domainname with null characters to length 80
+		int dn_pad = 80 - unlength; //Number of characters to pad
+		for(int i = 0; i < dn_pad; i++)
+		{
+			domain_name = domain_name + '\0';
+		}
+		dnlength = domain_name.length();
+		
+		//Pad username with null characters to length 80
+		int un_pad = 80 - unlength; //Number of characters to pad
+		for(int i = 0; i < un_pad; i++)
+		{
+			user_name = user_name + '\0';
+		}
+		
+		//Pad password with null characters to length 80
+		int pw_pad = 80 - pwlength; //Number of characters to pad
+		for(int i = 0; i < pw_pad; i++)
+		{
+			password = password + '\0';
+		}
+		
+		//Open passwd_file in append mode and add the new entry (in this order: domain, user, password).
+		ofstream register_account;
+		register_account.open("passwd_file", ios::app);
+		register_account<<domain_name;
+		register_account<<user_name;
+		register_account<<password;
+		register_account.close();
+		
+		cout<<"Written!\n\n";
+	}
+	
+	cout<<"\n\nDomain list looks like this:\n";
+	for(int i = 0; i < domains.size(); i++)
+	{
+		cout<<"Domain "<<i + 1<<" : \t"<<domains[i];
+		cout<<"\n";
+	}
+	cout<<"\n\n";
 }
 
 void delete_account()
