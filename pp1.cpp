@@ -71,7 +71,7 @@ void register_account()
 		}
 		pwlength = password.length();
 		
-		//Pad domainname with null characters to length 80
+		//Pad domain name with null characters to length 80
 		int dn_pad = 80 - unlength; //Number of characters to pad
 		for(int i = 0; i < dn_pad; i++)
 		{
@@ -115,6 +115,13 @@ void register_account()
 
 void delete_account()
 {
+	//Strings that store account details to be deleted.  
+	string domain_name;
+	string user_name;
+	string password;
+	
+
+
 	cout<<"Account has been deleted. (I wish it was this simple.)\n\n";
 }
 
@@ -193,6 +200,31 @@ int main(int argc, char * argv[])
 		{
 			cout<<"Logged in!\n";
 			check_integrity();
+			
+			//Instantiate Domain Vector
+			
+			//open passwd_file and find its size in bytes
+			ifstream passwd;
+			passwd.open("passwd_file", ios::in);
+			passwd.seekg(0, passwd.end);
+			int pass_file_length = passwd.tellg();
+			passwd.seekg(0, passwd.beg);
+			
+			//look through password file, and obtain the domain name
+			for(int i = 0; i < pass_file_length/240; i++)//240 is the length in bytes of each entry, so loop for only the number of entries
+			{
+				string domain = "";
+				//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
+				while((char)passwd.peek() != '\0')
+				{
+					domain = domain + (char)passwd.get();
+				}
+				domains.push_back(domain);
+				passwd.seekg(240*(i+1),passwd.beg); 	
+			}
+			passwd.close();
+			cout<<"\nFile length in bytes: " << pass_file_length << "\n";
+			
 			menu();
 		}
 		else
@@ -200,6 +232,7 @@ int main(int argc, char * argv[])
 			//Wrong password entered by user.
 			cout<<"Wrong password!";
 		}
+		
 	}
 	else
 	{

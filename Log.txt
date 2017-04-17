@@ -12,3 +12,10 @@
 4/12 Wednesday 11:45 PM - Additional questions:
 - If the program cannot find both passwd_file and master_passwd, it asks the user to register with a new master password. What if one of the two files are found? What if both files exist, but the master_passwd is empty? Empty password?
 --Arjun
+
+4/16
+ - Noticed that the vector is lost every time you re-run the program
+ - Instantiate vector after you successfully enter the master password
+ - This code is located in the main method after you verify master
+ - as noted in the issue on github, I have notice variable length domain::user::pass entries in the file. 
+ -- Justin 
