@@ -10,6 +10,34 @@ using namespace std;
 
 vector<string> domains; //Vector of strings that will store an indexed list of all domains that the user has passwords with.
 
+void instantiate_vector()
+{
+	//Instantiate Domain Vector
+		
+	//open passwd_file and find its size in bytes
+	ifstream passwd;
+	passwd.open("passwd_file", ios::binary);
+	passwd.seekg(0, passwd.end);
+	int pass_file_length = passwd.tellg();
+	passwd.seekg(0, passwd.beg);
+		
+	//look through password file, and obtain the domain name
+	for(int i = 0; i < pass_file_length/240; i++)//240 is the length in bytes of each entry, so loop for only the number of entries
+		{
+			string domain = "";
+			//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
+			while(passwd.peek() != '\0')
+			{
+				domain = domain + (char)passwd.get();
+			}
+			domains.push_back(domain);
+			passwd.seekg(240*(i+1),passwd.beg); 	
+		}
+	passwd.close();
+	cout<<"\nFile length in bytes: " << pass_file_length << "\n";
+	
+}
+
 void check_integrity()
 {
 	cout<<"Integrity has been checked. (I wish it was this simple.)\n\n";
@@ -70,14 +98,14 @@ void register_account()
 			strlength = password.length();
 		}
 		pwlength = password.length();
+		dnlength = domain_name.length();
 		
 		//Pad domain name with null characters to length 80
-		int dn_pad = 80 - unlength; //Number of characters to pad
+		int dn_pad = 80 - dnlength; //Number of characters to pad
 		for(int i = 0; i < dn_pad; i++)
 		{
 			domain_name = domain_name + '\0';
 		}
-		dnlength = domain_name.length();
 		
 		//Pad username with null characters to length 80
 		int un_pad = 80 - unlength; //Number of characters to pad
@@ -200,30 +228,7 @@ int main(int argc, char * argv[])
 		{
 			cout<<"Logged in!\n";
 			check_integrity();
-			
-			//Instantiate Domain Vector
-			
-			//open passwd_file and find its size in bytes
-			ifstream passwd;
-			passwd.open("passwd_file", ios::in);
-			passwd.seekg(0, passwd.end);
-			int pass_file_length = passwd.tellg();
-			passwd.seekg(0, passwd.beg);
-			
-			//look through password file, and obtain the domain name
-			for(int i = 0; i < pass_file_length/240; i++)//240 is the length in bytes of each entry, so loop for only the number of entries
-			{
-				string domain = "";
-				//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
-				while((char)passwd.peek() != '\0')
-				{
-					domain = domain + (char)passwd.get();
-				}
-				domains.push_back(domain);
-				passwd.seekg(240*(i+1),passwd.beg); 	
-			}
-			passwd.close();
-			cout<<"\nFile length in bytes: " << pass_file_length << "\n";
+			instantiate_vector();		
 			
 			menu();
 		}
