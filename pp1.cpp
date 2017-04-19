@@ -26,7 +26,7 @@ void instantiate_vector()
 		{
 			string domain = "";
 			//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
-			while(passwd.peek() != '\0')
+			while((char)passwd.peek() != '\0')
 			{
 				domain = domain + (char)passwd.get();
 			}
@@ -147,8 +147,79 @@ void delete_account()
 	string domain_name;
 	string user_name;
 	string password;
+	//Strings that store the account details from passwd_file 
+	string pf_uname = "";
+	string pf_passwd = "";
+	//obtain domain name
+	cout<<"Enter the domain name of the account to delete: ";
+	cin>> domain_name;
+	//check if domain name exists:
+	int domain_index = -1;
+	for(int i = 0; i<domains.size(); i++)
+	{
+		if(!domains[i].compare(domain_name))
+		{
+			domain_index = i;
+		}
+	}	
+	if(domain_index < 0)
+	{
+		cout<<"USER ACCOUNT DOES NOT EXIST\n";
+		return;
+	}
 	
-
+	//take the username and password
+	cout<<"Enter the user name for "<<domain_name<<": ";
+	cin>> user_name;
+	cout<<"Enter the password for "<<domain_name<<": ";
+	cin>> password;
+	
+		
+	//go into the file and extract the username and password
+	ifstream passwd;
+	passwd.open("passwd_file", ios::binary);
+	passwd.seekg(240*domain_index+80, passwd.beg);
+	cout<<"in index:"<<domain_index<<"\n";
+	//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
+	while((char)passwd.peek() != '\0')
+	{
+		pf_uname = pf_uname + (char)passwd.get();
+	}
+	
+	//We will need to seek to the password
+	passwd.seekg(240*domain_index + 160, passwd.beg);
+	while((char)passwd.peek() != '\0')
+	{
+		pf_passwd = pf_passwd + (char)passwd.get();
+	}
+	
+	cout<<"Unme from file:"<<pf_uname<<"\n";
+	cout<<"Passwd from file:"<<pf_passwd<<"\n";
+	//check validity of entered strings
+	if(pf_uname.compare(user_name) || pf_passwd.compare(password))
+	{
+		cout<<"USER ACCOUNT DOES NOT EXIST\n";
+		return;
+	}
+	//Input has been verified, remove entry from file
+	passwd.seekg(0, passwd.beg);
+	//read in file up to index*240, then skip 240, read til eof
+	int size_of_file = domains.size()*240;
+	char* beforeDel = new char[240*domain_index];
+	char* afterDel = new char[size_of_file - 240*domain_index - 240];
+	passwd.seekg(0, passwd.beg);
+	passwd.read(beforeDel, 240*domain_index);
+	passwd.seekg(240*(domain_index+1), passwd.beg);
+	passwd.read(afterDel, size_of_file - 240*domain_index - 240);
+	cout << "BEFORE:DEL:" << beforeDel;
+	cout<<"\nAFTER:DELL:" <<afterDel<<"\n";	 
+	passwd.close();
+	remove("passwd_file");
+	ofstream n;
+	n.open("passwd_file");
+	n.write(beforeDel, 240*domain_index);
+	n.write(afterDel,  size_of_file - 240*domain_index - 240);
+	domains.erase(domains.begin() + domain_index);	
 
 	cout<<"Account has been deleted. (I wish it was this simple.)\n\n";
 }
