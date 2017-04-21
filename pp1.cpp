@@ -324,7 +324,54 @@ void change_account()
 
 void get_password()
 {
-	cout<<"Password has been gotten. (I wish it was this simple.)\n\n";
+	string domain_name; //stores domain name for password to get
+	bool found = false; //flag to check if the domain name exists in the file
+	int index; //index of the domain - used to index in the file
+	
+	//User enters domain 
+	cout<<"Enter the domain name  : ";
+	cin>>domain_name; 
+
+	//Go through the domains vectors to see if domain_name exists; if it does set the flag and the index
+	for(int i = 0; i < domains.size(); i++)
+	{
+		if(domains[i] == domain_name)
+		{
+			found = true;
+			index = i;
+		}
+	}
+	
+	//If the flag is not set, print an error message and return
+	if(found == false)
+		cout<<"Domain name doesn't exist!\n";
+	else //If the flag is set, find the username and password for the domain name
+	{
+		string username, password; //to store the corresponding username and password
+		char* un = new char [160]; //char array to store username from file
+		char* pw = new char [160]; //char array to stsore password from file
+		index = (index * 240) + 80; //position in file where the required user-name and password is stored.
+		
+		//open passwd file and extract the user name and password
+		ifstream passwd;
+		passwd.open("passwd_file", ios::in);
+		
+		//Read and print username
+		passwd.seekg(index, ios::beg); //Set the get pointer to where we want to start reading from
+		passwd.get(un, 80);
+		username = string(un);
+		cout.clear();
+		cout<<"\nUser name for the given domain is "<<username<<"\n";
+		
+		//read and print password
+		passwd.seekg(index+80, ios::beg); //Set the get pointer to where we want to start reading from
+		passwd.get(pw, 80);
+		password = string(pw);
+		cout.clear();
+		cout<<"\nPassword for the given domain is "<<password<<"\n\n";
+		passwd.close();
+	}
+	
 }
 
 void menu()
