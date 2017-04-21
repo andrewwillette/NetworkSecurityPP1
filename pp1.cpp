@@ -226,6 +226,99 @@ void delete_account()
 
 void change_account()
 {
+	
+	//Strings that store account details to be changed.  
+	string domain_name;
+	string user_name;
+	string opassword;
+	string npassword;
+	//Strings that store the account details from passwd_file 
+	string pf_uname = "";
+	string pf_passwd = "";
+	//obtain domain name
+	cout<<"Enter the domain name of the account to change: ";
+	cin>> domain_name;
+	//check if domain name exists:
+	int domain_index = -1;
+	for(int i = 0; i<domains.size(); i++)
+	{
+		if(!domains[i].compare(domain_name))
+		{
+			domain_index = i;
+		}
+	}	
+	if(domain_index < 0)
+	{
+		cout<<"USER ACCOUNT DOES NOT EXIST\n";
+		return;
+	}
+	
+	//take the username and password
+	cout<<"Enter the user name for "<<domain_name<<": ";
+	cin>> user_name;
+	cout<<"Enter the old password for "<<domain_name<<": ";
+	cin>> opassword;
+	int strlength = 81; //Reset this since it has been changed
+	//Input password for the domain
+	while(strlength > 80)
+	{
+		cout<<"Enter new password for "<<domain_name<<" : ";
+		cin >> npassword;
+		strlength = npassword.length();
+	}
+	
+	
+		
+	//go into the file and extract the username and password
+	ifstream passwd;
+	passwd.open("passwd_file", ios::binary);
+	passwd.seekg(240*domain_index+80, passwd.beg);
+	cout<<"in index:"<<domain_index<<"\n";
+	//first bytes until null will be the proper data 
+	while((char)passwd.peek() != '\0')
+	{
+		pf_uname = pf_uname + (char)passwd.get();
+	}
+	
+	//We will need to seek to the password
+	passwd.seekg(240*domain_index + 160, passwd.beg);
+	while((char)passwd.peek() != '\0')
+	{
+		pf_passwd = pf_passwd + (char)passwd.get();
+	}
+	
+	cout<<"Unme from file:"<<pf_uname<<"\n";
+	cout<<"Passwd from file:"<<pf_passwd<<"\n";
+	//check validity of entered strings
+	if(pf_uname.compare(user_name) || pf_passwd.compare(opassword))
+	{
+		cout<<"USER ACCOUNT DOES NOT EXIST\n";
+		return;
+	}
+	//Input has been verified, change entry from file
+	//pad the npassword to be 80 bytes.
+	
+	//Pad password with null characters to length 80
+	int pw_pad = 80 - npassword.length(); //Number of characters to pad
+	for(int i = 0; i < pw_pad; i++)
+	{
+		npassword = npassword + '\0';
+	}
+	const char* new_pass_to_write = npassword.c_str();
+	char* before_pass = new char[domain_index*240 +160];
+	int size_of_domains = domains.size();
+	char* after_pass = new char[size_of_domains*240 -domain_index*240 - 240];
+	passwd.seekg(0, passwd.beg);
+	passwd.read(before_pass, domain_index*240 + 160);
+	passwd.seekg(240*(domain_index+1), passwd.beg);
+	passwd.read(after_pass, size_of_domains*240 -domain_index*240 - 240);	
+	passwd.close();
+	remove("passwd_file");
+	ofstream opass;
+	opass.open("passwd_file", ios::binary);
+	opass.write(before_pass, domain_index*240+160);
+	opass.write(new_pass_to_write, 80);
+	opass.write(after_pass, size_of_domains*240 -domain_index*240 - 240);	
 	cout<<"Account has been changed. (I wish it was this simple.)\n\n";
 }
 
