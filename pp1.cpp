@@ -15,6 +15,22 @@ vector<string> domains; //Vector of strings that will store an indexed list of a
 unsigned char* key;//Global Key Variable
 
 
+
+unsigned char *key_gen(string password)
+{
+	const char *topass = password.c_str();
+	int passlen = password.length();
+	const unsigned char *salt  = new unsigned char[12345678] ;
+	int saltlen = 8;
+	int toIter= 1000;
+	const EVP_MD *digester = EVP_sha256();
+	int keylen = 16;
+	unsigned char key1[16];
+	int toTest = PKCS5_PBKDF2_HMAC( topass, passlen, salt, saltlen, toIter, digester, keylen, key1);
+	return key1;
+}
+
+
 void handleErrors(void)
 {
   ERR_print_errors_fp(stderr);
@@ -605,7 +621,6 @@ int main(int argc, char * argv[])
 			key = key_gen(password); 	//creating unique key from password using PBKDF
 			check_integrity();
 			instantiate_vector();		
-			printf("%i", encrKey); 	
 			menu();
 		}
 		else
