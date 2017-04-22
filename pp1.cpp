@@ -1,6 +1,3 @@
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
 #include<iostream>
 #include<fstream>
 #include<string.h>
@@ -8,15 +5,167 @@
 #include<math.h>
 #include <sstream>
 #include<vector>
-
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 using namespace std;
 
 vector<string> domains; //Vector of strings that will store an indexed list of all domains that the user has passwords with.
+unsigned char* key;//Global Key Variable
+
+
+void handleErrors(void)
+{
+  ERR_print_errors_fp(stderr);
+  abort();
+}
+
+
+//decrypt function involving openssl stores result in plaintext
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+  unsigned char *iv, unsigned char *plaintext)
+{
+  EVP_CIPHER_CTX *ctx;
+
+  int len;
+
+  int plaintext_len;
+
+  /* Create and initialise the context */
+  if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+  /* Initialise the decryption operation. IMPORTANT - ensure you use a key
+   * and IV size appropriate for your cipher
+   * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+   * IV size for *most* modes is the same as the block size. For AES this
+   * is 128 bits */
+  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
+    handleErrors();
+
+  /* Provide the message to be decrypted, and obtain the plaintext output.
+   * EVP_DecryptUpdate can be called multiple times if necessary
+   */
+  if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
+    handleErrors();
+  plaintext_len = len;
+
+  /* Finalise the decryption. Further plaintext bytes may be written at
+   * this stage.
+   */
+  if(1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) handleErrors();
+  plaintext_len += len;
+
+  /* Clean up */
+  EVP_CIPHER_CTX_free(ctx);
+
+  return plaintext_len;
+}
+
+
+void decrypt_pf()
+{
+	//Instantiate storw  IV
+	unsigned char* IV = new unsigned char[16];
+	//open the passwd_file and read the IV and cryptotext
+	ifstream passwd;
+	passwd.open("passwd_file");
+	passwd.read((char*)IV, 16);
+	passwd.seekg(0, passwd.end);
+	int crypto_len = (int)passwd.tellg() - 16;
+	if(passwd.tellg() <= 0){ passwd.close();return; } 
+	unsigned char* plaintext = new unsigned char[crypto_len];
+	passwd.seekg(16, passwd.beg);
+	unsigned char* cryptotext = new unsigned char[crypto_len];
+	passwd.read((char*)cryptotext, crypto_len);
+	
+	//using the global key, decrypt the crypto_text
+	decrypt(cryptotext, crypto_len, key, IV, plaintext);
+	
+	//change passwd_file to plaintext
+	passwd.close();
+	remove("passwd_file");
+	ofstream opass;
+	opass.open("passwd_file", ios::binary);
+	opass.write((char*)plaintext, crypto_len);
+	
+}
+
+
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
+  unsigned char *iv, unsigned char *ciphertext)
+{
+  EVP_CIPHER_CTX *ctx;
+
+  int len;
+
+  int ciphertext_len;
+
+  /* Create and initialise the context */
+  if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+  /* Initialise the encryption operation. IMPORTANT - ensure you use a key
+   * and IV size appropriate for your cipher
+   * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+   * IV size for *most* modes is the same as the block size. For AES this
+   * is 128 bits */
+  if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
+    handleErrors();
+
+  /* Provide the message to be encrypted, and obtain the encrypted output.
+   * EVP_EncryptUpdate can be called multiple times if necessary
+   */
+  if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
+    handleErrors();
+  ciphertext_len = len;
+
+  /* Finalise the encryption. Further ciphertext bytes may be written at
+   * this stage.
+   */
+  if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) handleErrors();
+  ciphertext_len += len;
+
+  /* Clean up */
+  EVP_CIPHER_CTX_free(ctx);
+
+  return ciphertext_len;
+}
+
+
+void encrypt_pf()
+{
+	//Instantiate array to hold new random IV
+	unsigned char* IV = new unsigned char[16];
+	RAND_bytes(IV, 16);
+	
+	//get filesizze
+	ifstream passwd; 
+	passwd.open("passwd_file");
+	passwd.seekg(0, passwd.end);
+	int file_size = passwd.tellg();
+
+	passwd.seekg(0, passwd.beg);
+	//allocate space for plaintext and ciphertext
+	unsigned char* plaintext = new unsigned char[file_size];
+	unsigned char* ciphertext = new unsigned char[file_size];
+	//read from file to get plaintext
+	passwd.read((char*)plaintext, file_size);
+	//encrypt
+	encrypt(plaintext, file_size, key, IV, ciphertext);	
+	//write IV then ciphertext to file
+	passwd.close();
+	remove("passwd_file");
+	ofstream opass;
+	opass.open("passwd_file");
+	opass.write((char*)IV, 16);
+	opass.write((char*)ciphertext, file_size);
+}
+
 
 void instantiate_vector()
 {
 	//Instantiate Domain Vector
-		
+	decrypt_pf();		
 	//open passwd_file and find its size in bytes
 	ifstream passwd;
 	passwd.open("passwd_file", ios::binary);
@@ -37,22 +186,9 @@ void instantiate_vector()
 			passwd.seekg(240*(i+1),passwd.beg); 	
 		}
 	passwd.close();
+	encrypt_pf();
 	cout<<"\nFile length in bytes: " << pass_file_length << "\n";
 	
-}
-
-unsigned char *key_gen(string password)
-{
-	const char *topass = password.c_str();
-	int passlen = password.length();
-	const unsigned char *salt  = new unsigned char[12345678] ;
-	int saltlen = 8;
-	int toIter= 1000;
-	const EVP_MD *digester = EVP_sha256();
-	int keylen = 16;
-	unsigned char key1[16];
-	int toTest = PKCS5_PBKDF2_HMAC( topass, passlen, salt, saltlen, toIter, digester, keylen, key1);
-	return key1;
 }
 
 void check_integrity()
@@ -62,6 +198,7 @@ void check_integrity()
 
 void register_account()
 {
+	decrypt_pf();
 	//Strings that will store the details of the accunt.
 	string domain_name;
 	string user_name;
@@ -156,10 +293,12 @@ void register_account()
 		cout<<"\n";
 	}
 	cout<<"\n\n";
+	encrypt_pf();
 }
 
 void delete_account()
 {
+	decrypt_pf();
 	//Strings that store account details to be deleted.  
 	string domain_name;
 	string user_name;
@@ -237,13 +376,13 @@ void delete_account()
 	n.write(beforeDel, 240*domain_index);
 	n.write(afterDel,  size_of_file - 240*domain_index - 240);
 	domains.erase(domains.begin() + domain_index);	
-
+	encrypt_pf();
 	cout<<"Account has been deleted. (I wish it was this simple.)\n\n";
 }
 
 void change_account()
 {
-	
+	decrypt_pf();
 	//Strings that store account details to be changed.  
 	string domain_name;
 	string user_name;
@@ -335,60 +474,16 @@ void change_account()
 	opass.open("passwd_file", ios::binary);
 	opass.write(before_pass, domain_index*240+160);
 	opass.write(new_pass_to_write, 80);
-	opass.write(after_pass, size_of_domains*240 -domain_index*240 - 240);	
+	opass.write(after_pass, size_of_domains*240 -domain_index*240 - 240);
+	opass.close();
+	
+	encrypt_pf();	
 	cout<<"Account has been changed. (I wish it was this simple.)\n\n";
 }
 
 void get_password()
 {
-	string domain_name; //stores domain name for password to get
-	bool found = false; //flag to check if the domain name exists in the file
-	int index; //index of the domain - used to index in the file
-	
-	//User enters domain 
-	cout<<"Enter the domain name  : ";
-	cin>>domain_name; 
-
-	//Go through the domains vectors to see if domain_name exists; if it does set the flag and the index
-	for(int i = 0; i < domains.size(); i++)
-	{
-		if(domains[i] == domain_name)
-		{
-			found = true;
-			index = i;
-		}
-	}
-	
-	//If the flag is not set, print an error message and return
-	if(found == false)
-		cout<<"Domain name doesn't exist!\n";
-	else //If the flag is set, find the username and password for the domain name
-	{
-		string username, password; //to store the corresponding username and password
-		char* un = new char [160]; //char array to store username from file
-		char* pw = new char [160]; //char array to stsore password from file
-		index = (index * 240) + 80; //position in file where the required user-name and password is stored.
-		
-		//open passwd file and extract the user name and password
-		ifstream passwd;
-		passwd.open("passwd_file", ios::in);
-		
-		//Read and print username
-		passwd.seekg(index, ios::beg); //Set the get pointer to where we want to start reading from
-		passwd.get(un, 80);
-		username = string(un);
-		cout.clear();
-		cout<<"\nUser name for the given domain is "<<username<<"\n";
-		
-		//read and print password
-		passwd.seekg(index+80, ios::beg); //Set the get pointer to where we want to start reading from
-		passwd.get(pw, 80);
-		password = string(pw);
-		cout.clear();
-		cout<<"\nPassword for the given domain is "<<password<<"\n\n";
-		passwd.close();
-	}
-	
+	cout<<"Password has been gotten. (I wish it was this simple.)\n\n";
 }
 
 void menu()
@@ -435,6 +530,14 @@ void menu()
 //Start here
 int main(int argc, char * argv[])
 {
+	//initialize AES
+	ERR_load_crypto_strings();
+	OpenSSL_add_all_algorithms();
+	OPENSSL_config(NULL);
+	//hardcoding key
+	key = (unsigned char*)"1234567890123456";	
+	cout<<"Size of key"<< sizeof &key <<"\n";
+
 	string master_passwd; //To store the master password from master_passwd
 	if((ifstream("passwd_file")) && (ifstream("master_passwd"))) //If both passwd_file and master_passwd exist
 	{
@@ -457,9 +560,7 @@ int main(int argc, char * argv[])
 			cout<<"Logged in!\n";
 			check_integrity();
 			instantiate_vector();		
-			unsigned char *encrKey = key_gen(password); 	//creating unique key from password using PBKDF
-			printf("%i", encrKey); 			//attempting to print out encryption key, having issues here
-			cout<<"Helloworld!\n";
+			
 			menu();
 		}
 		else
@@ -484,6 +585,10 @@ int main(int argc, char * argv[])
 		passwd.open("passwd_file");
 		passwd.close();
 	}
+	
+	//cleanup
+	EVP_cleanup();
+  	ERR_free_strings();
 	
 	return 0;
 }
