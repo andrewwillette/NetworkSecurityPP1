@@ -20,13 +20,14 @@ unsigned char *key_gen(string password)
 {
 	const char *topass = password.c_str();
 	int passlen = password.length();
-	const unsigned char *salt  = new unsigned char[12345678] ;
+	const unsigned char *salt  = (const unsigned char *) "01234567";
 	int saltlen = 8;
 	int toIter= 1000;
 	const EVP_MD *digester = EVP_sha256();
 	int keylen = 16;
-	unsigned char key1[16];
+	unsigned char *key1= new unsigned char[16];
 	int toTest = PKCS5_PBKDF2_HMAC( topass, passlen, salt, saltlen, toIter, digester, keylen, key1);
+	//cout<<"Number of elements in keygen result " << strlen((char*)key1)<<"\n"<<"PBK int result is "<< toTest<<"\n"; 	//FOR DEBUGGING
 	return key1;
 }
 
@@ -51,21 +52,21 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   /* Create and initialise the context */
   if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
 
-  /* Initialise the decryption operation. IMPORTANT - ensure you use a key
-   * and IV size appropriate for your cipher
-   * In this example we are using 256 bit AES (i.e. a 256 bit key). The
-   * IV size for *most* modes is the same as the block size. For AES this
-   * is 128 bits */
-  if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
-    handleErrors();
-
+	/* Initialise the decryption operation. IMPORTANT - ensure you use a key
+	 * and IV size appropriate for your cipher	
+   	*/
+	cout<<"Makes it to decryptinit call\n";			//FOR DEBUGGING
+ 	if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
+    	handleErrors();
+	cout<<"Makes it past decryptinit call\n";		//FOR DEBUGGING
+	
   /* Provide the message to be decrypted, and obtain the plaintext output.
    * EVP_DecryptUpdate can be called multiple times if necessary
    */
   if(1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
     handleErrors();
   plaintext_len = len;
-
+	cout<<"Makes it past decryptUpdate call\n";
   /* Finalise the decryption. Further plaintext bytes may be written at
    * this stage.
    */
@@ -87,6 +88,7 @@ void decrypt_pf()
 	ifstream passwd;
 	passwd.open("passwd_file");
 	passwd.read((char*)IV, 16);
+	cout<<"Reads first 16 chars in password file as IV\n";    //FOR DEBUGGING
 	passwd.seekg(0, passwd.end);
 	int crypto_len = (int)passwd.tellg() - 16;
 	if(passwd.tellg() <= 0){ passwd.close();return; } 
@@ -94,10 +96,11 @@ void decrypt_pf()
 	passwd.seekg(16, passwd.beg);
 	unsigned char* cryptotext = new unsigned char[crypto_len];
 	passwd.read((char*)cryptotext, crypto_len);
-	
+	//cout<<strlen((char*)key);
+	cout<<"Makes it to decrypt call\n";    //FOR DEBUGGING
 	//using the global key, decrypt the crypto_text
-	decrypt(cryptotext, crypto_len, key, IV, plaintext);
-	
+	decrypt(cryptotext, crypto_len, key, IV, plaintext);      	//Decrypt call making seg fault
+	cout<<"Makes it past decrypt call\n"; 	//FOR DEBUGGING
 	//change passwd_file to plaintext
 	passwd.close();
 	remove("passwd_file");
@@ -180,8 +183,10 @@ void encrypt_pf()
 
 void instantiate_vector()
 {
+	cout<<"beginning of instantiate vector() call\n";
 	//Instantiate Domain Vector
-	decrypt_pf();		
+	decrypt_pf();
+	cout<<"correctly decrypts password data\n";		
 	//open passwd_file and find its size in bytes
 	ifstream passwd;
 	passwd.open("passwd_file", ios::binary);
@@ -619,8 +624,11 @@ int main(int argc, char * argv[])
 		{
 			cout<<"Logged in!\n";
 			key = key_gen(password); 	//creating unique key from password using PBKDF
+			//key = (unsigned char *)"0123456789012345";
 			check_integrity();
-			instantiate_vector();		
+			cout<<"correctly checks integrity\n";
+			instantiate_vector();
+			cout<<"correctly instantiates vector\n";		
 			menu();
 		}
 		else
