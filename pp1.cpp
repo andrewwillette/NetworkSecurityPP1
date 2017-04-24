@@ -10,6 +10,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #define MAC_LEN 8 //MAC length in bytes
+
 using namespace std;
 
 vector<string> domains; //Vector of strings that will store an indexed list of all domains that the user has passwords with.
@@ -122,7 +123,6 @@ void decrypt_pf()
 	
 }
 
-
 int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
   unsigned char *iv, unsigned char *ciphertext)
 {
@@ -162,7 +162,6 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
   return ciphertext_len;
 }
 
-
 void encrypt_pf()
 {
 	//Instantiate array to hold new random IV
@@ -197,7 +196,7 @@ void encrypt_pf()
 	opass.write((char*)ciphertext, file_size + MAC_LEN);
 }
 
-
+//Function that opens passwd_file and implements the domains vector, that is the datatype used to keep track of the list of domain names in the file.
 void instantiate_vector()
 {
 	//Instantiate Domain Vector
@@ -273,6 +272,7 @@ bool bool_check_integrity()
 	cout<<"Integrity has been checked. (I wish it was this simple.)\n\n";
 }
 
+//Function that lets the user register an account.
 void register_account()
 {
 	decrypt_pf();
@@ -373,6 +373,7 @@ void register_account()
 	encrypt_pf();
 }
 
+//Function that allows user to delete an account
 void delete_account()
 {
 	decrypt_pf();
@@ -457,6 +458,7 @@ void delete_account()
 	cout<<"Account has been deleted. (I wish it was this simple.)\n\n";
 }
 
+//Function that allows user to change account details
 void change_account()
 {
 	decrypt_pf();
@@ -558,6 +560,7 @@ void change_account()
 	cout<<"Account has been changed. (I wish it was this simple.)\n\n";
 }
 
+//Function to retrieve password for the user, given domain name.
 void get_password()
 {
 	decrypt_pf();
@@ -611,6 +614,7 @@ void get_password()
 	encrypt_pf();
 }
 
+//Function that outputs a menu for the user to select a functionality to implement from.
 void menu()
 {
 	string choice; //Stores user's choice from the menu.
