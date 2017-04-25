@@ -25,11 +25,17 @@ bool bool_check_integrity();
 //get_mac will get the mac of an encrypted file
 unsigned char* get_mac(unsigned char* pt, int length)
 {
-	unsigned char* digest;
-
-	const EVP_MD *toRun = EVP_sha512();
+	unsigned char* digest = new unsigned char[SHA512_DIGEST_LENGTH];
+	HMAC_CTX ctx;
+  	HMAC_CTX_init(&ctx);
+	HMAC_Init_ex(&ctx, key, strlen((const char*)key), EVP_sha512(), NULL);
+	HMAC_Update(&ctx, pt, length);
+	HMAC_Final(&ctx, digest, (unsigned int*)&length);
+	HMAC_CTX_cleanup(&ctx);
 	
-    	digest = HMAC(toRun, key, strlen((const char *)key), pt, length, NULL, NULL);    
+	
+	
+
 
     // Be careful of the length of string with the choosen hash engine. SHA1 produces a 20-byte hash value which rendered as 40 characters.
     // Change the length accordingly with your choosen hash engine
@@ -130,8 +136,8 @@ void decrypt_pf()
 	opass.write((char*)plaintext, crypto_len - MAC_LEN);
 	//store mac	
 	memcpy(MAC,&plaintext[crypto_len - MAC_LEN], MAC_LEN);
-	cout <<"This is MAC:" << MAC << '\0' << '\n';
-	cout <<"Sizeofmac: "<< strlen((char*)MAC) << "\n";  
+
+
 	
 }
 
@@ -234,7 +240,7 @@ void instantiate_vector()
 		}
 	passwd.close();
 	encrypt_pf();
-	cout<<"\nFile length in bytes: " << pass_file_length << "\n";
+
 	
 }
 
@@ -264,8 +270,8 @@ bool bool_check_integrity()
 	passwd.read((char*)data, file_size);
 	//obtain a new mac
 	unsigned char* nMac = get_mac(data, file_size);
-	cout<<"Newly generated MAC: "<<nMac<<"\n";
-	cout<<"Stored MAC: "<<MAC<<"\n";
+
+
 	//compare old mac with the mac of the newly obtained plaintext.	
 	bool eq = true;	
 	for(int i = 0; i < MAC_LEN; i ++)
@@ -282,7 +288,7 @@ bool bool_check_integrity()
 		return false;
 	}
 	
-	cout<<"Integrity has been checked. (I wish it was this simple.)\n\n";
+
 }
 
 //Function that lets the user register an account.
@@ -311,7 +317,7 @@ void register_account()
 	{
 		if(domain_name == domains[i])
 		{
-			cout<<"This domain already exists!\n"; //Go back to menu
+			cout<<"USER ACCOUNT ALREADY EXISTS!\n"; //Go back to menu
 			domain_exists_flag = true;
 		}
 	}
@@ -373,16 +379,10 @@ void register_account()
 		register_account<<password;
 		register_account.close();
 		
-		cout<<"Written!\n\n";
+
 	}
 	
-	cout<<"\n\nDomain list looks like this:\n";
-	for(int i = 0; i < domains.size(); i++)
-	{
-		cout<<"Domain "<<i + 1<<" : \t"<<domains[i];
-		cout<<"\n";
-	}
-	cout<<"\n\n";
+	
 	encrypt_pf();
 }
 
@@ -426,7 +426,7 @@ void delete_account()
 	ifstream passwd;
 	passwd.open("passwd_file", ios::binary);
 	passwd.seekg(240*domain_index+80, passwd.beg);
-	cout<<"in index:"<<domain_index<<"\n";
+
 	//first bytes until null will be the domain. once domain is read in, skip to a multiple of 240
 	while((char)passwd.peek() != '\0')
 	{
@@ -440,8 +440,8 @@ void delete_account()
 		pf_passwd = pf_passwd + (char)passwd.get();
 	}
 	
-	cout<<"Unme from file:"<<pf_uname<<"\n";
-	cout<<"Passwd from file:"<<pf_passwd<<"\n";
+
+
 	//check validity of entered strings
 	if(pf_uname.compare(user_name) || pf_passwd.compare(password))
 	{
@@ -468,7 +468,7 @@ void delete_account()
 	n.write(afterDel,  size_of_file - 240*domain_index - 240);
 	domains.erase(domains.begin() + domain_index);	
 	encrypt_pf();
-	cout<<"Account has been deleted. (I wish it was this simple.)\n\n";
+
 }
 
 //Function that allows user to change account details
@@ -521,7 +521,7 @@ void change_account()
 	ifstream passwd;
 	passwd.open("passwd_file", ios::binary);
 	passwd.seekg(240*domain_index+80, passwd.beg);
-	cout<<"in index:"<<domain_index<<"\n";
+
 	//first bytes until null will be the proper data 
 	while((char)passwd.peek() != '\0')
 	{
@@ -535,8 +535,7 @@ void change_account()
 		pf_passwd = pf_passwd + (char)passwd.get();
 	}
 	
-	cout<<"Unme from file:"<<pf_uname<<"\n";
-	cout<<"Passwd from file:"<<pf_passwd<<"\n";
+
 	//check validity of entered strings
 	if(pf_uname.compare(user_name) || pf_passwd.compare(opassword))
 	{
@@ -570,7 +569,7 @@ void change_account()
 	opass.close();
 	
 	encrypt_pf();	
-	cout<<"Account has been changed. (I wish it was this simple.)\n\n";
+
 }
 
 //Function to retrieve password for the user, given domain name.
@@ -614,15 +613,16 @@ void get_password()
 		passwd.get(un, 80);
 		username = string(un);
 		cout.clear();
-		cout<<"\nUser name for the given domain is "<<username<<"\n";
+
 		
 		//read and print password
 		passwd.seekg(index+80, ios::beg); //Set the get pointer to where we want to start reading from
 		passwd.get(pw, 80);
 		password = string(pw);
 		cout.clear();
-		cout<<"\nPassword for the given domain is "<<password<<"\n\n";
+
 		passwd.close();
+	cout<<"username "<<username<<" password "<<password<<"\n";
 	}
 	encrypt_pf();
 }
@@ -704,7 +704,6 @@ int main(int argc, char * argv[])
 		}
 		
 		//User input for master password
-		cout<<"This is the hashed master password: "<<retrieve_master<<" (Security 101: DONT do this!)\n";
 		cout<<"\nEnter master password: ";
 		scanf("%s",master_passwd);
 		for(int i = 0; i < 336; i++)
@@ -723,9 +722,6 @@ int main(int argc, char * argv[])
 		
 		//Using a boolean flag variable, check that every character of hashed master password matches the corresponding character of hashed user psasword
 		bool flag = true;
-		cout<<"Length of stored password = "<<sizeof(retrieve_master)<<"\n";
-		cout<<"Stored password: "<<retrieve_master<<"\n";
-		cout<<"User password:   "<<digest<<"\n";
 
 		for(int i = 0; i < 64; i++)
 		{	
