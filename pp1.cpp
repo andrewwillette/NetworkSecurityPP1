@@ -11,7 +11,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
-#define MAC_LEN 8 //MAC length in bytes
+#define MAC_LEN 32 //MAC length in bytes
 
 using namespace std;
 
@@ -23,10 +23,20 @@ unsigned char* MAC = new unsigned char[MAC_LEN];
 bool bool_check_integrity();
 
 //get_mac will get the mac of an encrypted file
-unsigned char* get_mac(unsigned char* records, int length)
+unsigned char* get_mac(unsigned char* pt, int length)
 {
-	unsigned char* ret = (unsigned char*)"12345678";
-	return ret;
+	unsigned char* digest;
+
+	const EVP_MD *toRun = EVP_sha512();
+	
+    	digest = HMAC(toRun, key, strlen((const char *)key), pt, length, NULL, NULL);    
+
+    // Be careful of the length of string with the choosen hash engine. SHA1 produces a 20-byte hash value which rendered as 40 characters.
+    // Change the length accordingly with your choosen hash engine
+    unsigned char* mdString = new unsigned char[32];
+	memcpy(mdString, digest, 32);
+	return mdString;
+         
 }
 
 unsigned char *key_gen(string password)
@@ -254,7 +264,8 @@ bool bool_check_integrity()
 	passwd.read((char*)data, file_size);
 	//obtain a new mac
 	unsigned char* nMac = get_mac(data, file_size);
-
+	cout<<"Newly generated MAC: "<<nMac<<"\n";
+	cout<<"Stored MAC: "<<MAC<<"\n";
 	//compare old mac with the mac of the newly obtained plaintext.	
 	bool eq = true;	
 	for(int i = 0; i < MAC_LEN; i ++)
