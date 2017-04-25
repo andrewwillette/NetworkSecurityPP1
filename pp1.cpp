@@ -5,10 +5,12 @@
 #include<math.h>
 #include <sstream>
 #include<vector>
+#include <openssl/hmac.h>
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
 #define MAC_LEN 8 //MAC length in bytes
 
 using namespace std;
@@ -665,25 +667,68 @@ int main(int argc, char * argv[])
 	OPENSSL_config(NULL);
 	//hardcoding key
 
-	string master_passwd; //To store the master password from master_passwd
 	if((ifstream("passwd_file")) && (ifstream("master_passwd"))) //If both passwd_file and master_passwd exist
 	{
-		string password; //To store user's input password
-		ifstream master; //File stream to input master_passwd
+		FILE * rd; //File stream to input master_passwd
+		unsigned char digest[SHA512_DIGEST_LENGTH]; //Stores digest of user password
+		unsigned char master_passwd[80]; //Stores user's input of password
+		unsigned char retrieve_master[SHA512_DIGEST_LENGTH]; //Stores digest of master password from file
+		unsigned char salt[256]; //stores a 256 byte salt
+		char saltedpass[336]; //stores password prepended with salt
+		int inputlength = 256 + SHA512_DIGEST_LENGTH;
+		unsigned char ip[inputlength];
 		
 		//Open master_passwd, copy master password to variable password, and then close it
-		master.open("master_passwd", ios::in);
-		master >>  password;
-		master.close();
+		rd = fopen("master_passwd", "r");
+		fread(&ip, sizeof(char), sizeof(ip), rd);
+		//master.read((char*)retrieve_master, SHA512_DIGEST_LENGTH);
+		fclose(rd);
+		
+		for(int i = 0; i < inputlength; i++)
+		{
+			if(i < 256)
+				salt[i] = ip[i];
+			else
+				retrieve_master[i-256] = ip[i];
+		}
 		
 		//User input for master password
-		cout<<"This is the master password: "<<password<<" (Security 101: DONT do this!)\n";
+		cout<<"This is the hashed master password: "<<retrieve_master<<" (Security 101: DONT do this!)\n";
 		cout<<"\nEnter master password: ";
-		cin >> master_passwd;
+		scanf("%s",master_passwd);
+		for(int i = 0; i < 336; i++)
+		{
+			if(i < 256)
+				saltedpass[i] = salt[i];
+			else
+				saltedpass[i] = master_passwd[i-256];
+		}
+		
+		//SHA512 hashing of master_passwd to digest
+		SHA512_CTX ctx;
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, saltedpass, strlen(saltedpass));
+		SHA512_Final(digest, &ctx);
+		
+		//Using a boolean flag variable, check that every character of hashed master password matches the corresponding character of hashed user psasword
+		bool flag = true;
+		cout<<"Length of stored password = "<<sizeof(retrieve_master)<<"\n";
+		cout<<"Stored password: "<<retrieve_master<<"\n";
+		cout<<"User password:   "<<digest<<"\n";
+
+		for(int i = 0; i < 64; i++)
+		{	
+			if(digest[i] != retrieve_master[i])
+				flag = false;
+		}
 		
 		//If user's input matches master password, log user in, call check_integrity(), and then call menu().
-		if(master_passwd == password)
+		if(flag == true)
 		{
+			string password;
+			stringstream s;
+			s << master_passwd;
+			password = s.str();
 			cout<<"Logged in!\n";
 			key = key_gen(password); 	//creating unique key from password using PBKDF
 			check_integrity_startup();
@@ -699,14 +744,49 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		ofstream master, passwd; //File streams to create master_passwd and passwd_file (Opening a file in the write mode creates that file if it does not exist)
-		cout<<"New user - enter your preferred master password : ";
-		cin >> master_passwd; //Input master password from user
+		ofstream passwd;
+		FILE * wrt; //File streams to create master_passwd and passwd_file (Opening a file in the write mode creates that file if it does not exist)
+		unsigned char digest[SHA512_DIGEST_LENGTH]; //stores password digest
+		unsigned char password[80]; //stores user entered password
+		unsigned char salt[256]; //stores a 256 byte salt
+		char saltedpass[336]; //stores password prepended with salt
 		
-		//Open master_passwd, store the password entered by the user in it, and then close it.
-		master.open("master_passwd", ios::out);
-		master<<master_passwd;
-		master.close();
+		//Good salt
+		for(int i = 0;i < 256; i++)
+			RAND_bytes(&salt[i], 1);
+				
+		//Input user's new master password
+		cout<<"New user - enter your preferred master password : ";
+		scanf("%s", password); //Input master password from user
+		
+		//Create salted password
+		for(int i = 0; i < 336; i++)
+		{
+			if(i < 256)
+				saltedpass[i] = salt[i];
+			else
+				saltedpass[i] = password[i-256];
+		}
+
+		//Run SHA512 on salted password to create digest
+		SHA512_CTX ctx2;
+		SHA512_Init(&ctx2);
+		SHA512_Update(&ctx2, saltedpass, strlen(saltedpass));
+		SHA512_Final(digest, &ctx2);
+		
+		int outputlength = 256 + SHA512_DIGEST_LENGTH;
+		unsigned char op[outputlength];
+		for(int i = 0; i < outputlength; i++)
+		{
+			if(i < 256)
+				op[i] = salt[i];
+			else
+				op[i] = digest[i-256];
+		}
+		//Open master_passwd, store the password digest, and then close it.
+		wrt = fopen("master_passwd","w");
+		fwrite(&op, sizeof(char), sizeof(op), wrt);
+		fclose(wrt);
 		
 		//Create passwd_file
 		passwd.open("passwd_file");
@@ -719,3 +799,4 @@ int main(int argc, char * argv[])
 	
 	return 0;
 }
+
