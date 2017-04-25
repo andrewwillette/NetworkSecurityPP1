@@ -5,6 +5,7 @@
 #include<math.h>
 #include <sstream>
 #include<vector>
+#include <openssl/hmac.h>
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -674,16 +675,22 @@ int main(int argc, char * argv[])
 		unsigned char retrieve_master[SHA512_DIGEST_LENGTH]; //Stores digest of master password from file
 		unsigned char salt[256]; //stores a 256 byte salt
 		char saltedpass[336]; //stores password prepended with salt
-		
-		//Creating a really lame salt
-		for(int i = 0;i < 256; i++)
-			salt[i] = '1';
+		int inputlength = 256 + SHA512_DIGEST_LENGTH;
+		unsigned char ip[inputlength];
 		
 		//Open master_passwd, copy master password to variable password, and then close it
 		rd = fopen("master_passwd", "r");
-		fread(&retrieve_master, sizeof(char), sizeof(retrieve_master), rd);
+		fread(&ip, sizeof(char), sizeof(ip), rd);
 		//master.read((char*)retrieve_master, SHA512_DIGEST_LENGTH);
 		fclose(rd);
+		
+		for(int i = 0, j = i - 256; i < inputlength; i++, j++)
+		{
+			if(i < 256)
+				salt[i] = ip[i];
+			else
+				retrieve_master[j] = ip[i];
+		}
 		
 		//User input for master password
 		cout<<"This is the hashed master password: "<<retrieve_master<<" (Security 101: DONT do this!)\n";
@@ -745,9 +752,9 @@ int main(int argc, char * argv[])
 		unsigned char salt[256]; //stores a 256 byte salt
 		char saltedpass[336]; //stores password prepended with salt
 		
-		//Creating a really lame salt
+		//Good salt
 		for(int i = 0;i < 256; i++)
-			salt[i] = '1';
+			RAND_bytes(&salt[i], 1);
 				
 		//Input user's new master password
 		cout<<"New user - enter your preferred master password : ";
@@ -768,9 +775,18 @@ int main(int argc, char * argv[])
 		SHA512_Update(&ctx2, saltedpass, strlen(saltedpass));
 		SHA512_Final(digest, &ctx2);
 		
+		int outputlength = 256 + SHA512_DIGEST_LENGTH;
+		unsigned char op[outputlength];
+		for(int i = 0, j = i - 256; i < outputlength; i++, j++)
+		{
+			if(i < 256)
+				op[i] = salt[i];
+			else
+				op[i] = digest[j];
+		}
 		//Open master_passwd, store the password digest, and then close it.
 		wrt = fopen("master_passwd","w");
-		fwrite(&digest, sizeof(char), sizeof(digest), wrt);
+		fwrite(&op, sizeof(char), sizeof(op), wrt);
 		fclose(wrt);
 		
 		//Create passwd_file
