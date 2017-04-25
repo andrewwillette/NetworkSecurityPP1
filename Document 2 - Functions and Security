@@ -1,8 +1,8 @@
 - pp1.c++ stores a list of indexed domains in an instance of the C++ vector datastructure of strings.
 
-- passwd_file stores a contiguous list of 240 byte triples, followed by the MAC of the entire set of contiguous data. Each 240 byte triple represents a domainname-username-password set (each 80 bytes long). Every string of data (username, password, or domainname) is padded with null characters at the end to make up 80 bytes, if necessary.
+- passwd_file stores a 16-byte IV (for encryption) followed by a contiguous list of 240 byte triples, followed by the MAC of the entire set of contiguous data. Each 240 byte triple represents a domainname-username-password set (each 80 bytes long). Every string of data (username, password, or domainname) is padded with null characters at the end to make up 80 bytes, if necessary.
 For example, for 2 entries, the file looks like this:
-domain1||padding||user1||padding||pass1||padding||domain2||padding||user2||padding||pass2||padding||MAC of the previous data
+IV||domain1||padding||user1||padding||pass1||padding||domain2||padding||user2||padding||pass2||padding||MAC of the previous data
 
 -master_passwd stores a randomly generated 256-byte salt followed by the hash of  (salt||master password). This is what it looks like:
 salt||hash(salt||master password)
