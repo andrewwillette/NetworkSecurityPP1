@@ -17,10 +17,14 @@ key_gen uses the user entered password with PKCS5_PBKDF2_HMAC() of OpenSSL to ge
 instantiate_vector()
 The vector data type that stores all the domains of the user as strings isn't persistent - it is lost after the program is run. This function generates the vector of all the domains using passwd_file.
 
+get_mac()
+
+
 menu()
 This function gives the user a menu of functionalities to choose from, and calls the appropriate function according to the user's choice. This also includes an exit option.
 
 check_integrity()
+Check integrity will always fail. This is because every call to the get_mac() function on the same file would give us a different output. 
 
 register_account()
 This function lets the user register an account. It makes sure that the details entered by the user are within 80 characters (loops otherwise). If the domain name that the user is trying to register with already exists, then this function doesn't accept the entry. Upon successful completion, this adds the entry to passwd_file and to the vector.
