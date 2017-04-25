@@ -18,7 +18,7 @@ instantiate_vector()
 The vector data type that stores all the domains of the user as strings isn't persistent - it is lost after the program is run. This function generates the vector of all the domains using passwd_file.
 
 get_mac()
-
+get mac takes an unsigned char array and the length of that array, and returns its mac using the master password key. 
 
 menu()
 This function gives the user a menu of functionalities to choose from, and calls the appropriate function according to the user's choice. This also includes an exit option.
