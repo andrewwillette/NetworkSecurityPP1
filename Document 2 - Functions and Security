@@ -1,0 +1,38 @@
+- pp1.c++ stores a list of indexed domains in an instance of the C++ vector datastructure of strings.
+
+- passwd_file stores a contiguous list of 240 byte triples, followed by the MAC of the entire set of contiguous data. Each 240 byte triple represents a domainname-username-password set (each 80 bytes long). Every string of data (username, password, or domainname) is padded with null characters at the end to make up 80 bytes, if necessary.
+For example, for 2 entries, the file looks like this:
+domain1||padding||user1||padding||pass1||padding||domain2||padding||user2||padding||pass2||padding||MAC of the previous data
+
+-master_passwd stores a randomly generated 256-byte salt followed by the hash of  (salt||master password). This is what it looks like:
+salt||hash(salt||master password)
+
+main()
+The main function is the entry point to the function. Initially, it lets the user create a master password. It randomly generates a 256-byte salt, and writes it to the master_passwd file. It then uses a SHA-2 hash function to hash the salted password, and then writes that to the file. When I registered user is trying to log in, it salts the user's attempted password and hashes it, and checks that the stored hash matches with the user input's hash - in this case, it logs the user in.
+On log in, the main function calls key_gen with the user input of the password, check_integrity_startup, instantiate_vector, and menu.
+
+key_gen()
+key_gen uses the user entered password with PKCS5_PBKDF2_HMAC() of OpenSSL to generate a key for the MAC of passwd_file.
+
+instantiate_vector()
+The vector data type that stores all the domains of the user as strings isn't persistent - it is lost after the program is run. This function generates the vector of all the domains using passwd_file.
+
+menu()
+This function gives the user a menu of functionalities to choose from, and calls the appropriate function according to the user's choice. This also includes an exit option.
+
+check_integrity()
+
+register_account()
+This function lets the user register an account. It makes sure that the details entered by the user are within 80 characters (loops otherwise). If the domain name that the user is trying to register with already exists, then this function doesn't accept the entry. Upon successful completion, this adds the entry to passwd_file and to the vector.
+
+delete_account()
+This function lets the user delete an account. It changes the vector and the file to reflect this change if successful.
+
+change_account()
+This function lets the user change the password of an already registered account. It makes the changes to the vector and the file.
+
+get_password()
+get_password returns the password of an account requested by the user, if it exists. 
+
+encrypt_pf(), encrypt(), decrypt_pf(), decrypt()
+All the above menu functions call encrypt_pf() and decrypt_pf() for 128-bit AES encryption and decryption in ctr mode. encrypt() and decrypt() are auxiliary functions to do this.

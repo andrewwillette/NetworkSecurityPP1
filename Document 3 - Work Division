@@ -1,0 +1,4 @@
+Andrew Willette, Justin Gorecki, and Arjun Viswanathan were the team members for this programming assignment. We met up and coded together for many hours together over a couple of weeks to complete this project. The work was divided as follows:
+Andrew: Encryption and decryption using AES, HMAC implementation, key-generation.
+Justin: Menu functions, PRNG, HMAC, file manipulation with encryption and decryption.
+Arjun: Setting up program structure and main, hashing of master password, menu functions.

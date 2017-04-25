@@ -1,0 +1,4 @@
+The source code for this project was written in C++(and C) using OpenSSL for implementing security. The file 'pp1.cpp' contains all the code for the implementation of this project. To compile the file, use the following command on the terminal:
+'g++ pp1.cpp -lcrypto'
+To run the executable generated (a.out) run this command:
+'./a.out'
